@@ -2,6 +2,7 @@
 *.map
 *.dblite
 *.elf
+*.dump
 *.bin
 *.hex
 *.axf
@@ -64,3 +65,5 @@ vdso.lds
 # stm32cubemx
 **/CubeMX_Config/Drivers/
 **/CubeMX_Config/MDK-ARM/
+
+compile_commands.json
