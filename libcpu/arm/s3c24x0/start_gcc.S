@@ -213,6 +213,9 @@ copy_loop:
     /* Setup stack early */
     bl      stack_setup_early
 
+    /* Setup memory controller */
+    bl      mem_setup
+
     bl      led_main
 
     /* Clear .bss section */

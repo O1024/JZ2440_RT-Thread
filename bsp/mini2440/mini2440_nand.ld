@@ -2,19 +2,29 @@ OUTPUT_FORMAT("elf32-littlearm", "elf32-littlearm", "elf32-littlearm")
 OUTPUT_ARCH(arm)
 ENTRY(_start)
 
+/* Define memory regions */
+MEMORY
+{
+    SRAM : ORIGIN = 0x0, LENGTH = 4K
+    SDRAM : ORIGIN = 0x30000000, LENGTH = 64M
+}
+
 SECTIONS
 {
-    /* Exception vector table and early boot code - must be at 0x0 */
+    /* Exception vector table and early boot code - stored in NAND, executed in SRAM */
     . = 0x0;
     .init :
     {
         *(.init)           /* Exception vectors and reset code */
-        *(.boot_early)     /* Early boot functions like led_main */
-        . = ALIGN(4);
-    }
+        *(.boot_early)
 
-    /* Main program code */
-    . = ALIGN(4);
+
+        *(.boot_date)
+        . = ALIGN(4);
+    } > SRAM AT > SDRAM
+    
+    /* Main program code - stored in NAND, executed in SDRAM */
+    . = 0x30000000;
     .text : 
     {
         *(.text)
@@ -43,7 +53,7 @@ SECTIONS
         __rtmsymtab_start = .;
         KEEP(*(RTMSymTab))
         __rtmsymtab_end = .;
-    }
+    } > SDRAM
 
     /* Read-only data */
     . = ALIGN(4);
@@ -53,7 +63,7 @@ SECTIONS
         *(.rodata.*) 
         *(.gnu.linkonce.r*) 
         *(.eh_frame) 
-    }
+    } > SDRAM
 
     /* Constructors */
     . = ALIGN(4);
@@ -63,7 +73,7 @@ SECTIONS
         KEEP(*(SORT(.ctors.*)))
         KEEP(*(.ctors))
         PROVIDE(__ctors_end__ = .);
-    }
+    } > SDRAM
 
     /* Destructors */
     .dtors :
@@ -72,7 +82,7 @@ SECTIONS
         KEEP(*(SORT(.dtors.*)))
         KEEP(*(.dtors))
         PROVIDE(__dtors_end__ = .);
-    }
+    } > SDRAM
 
     /* Initialized data */
     . = ALIGN(4);
@@ -81,17 +91,16 @@ SECTIONS
         *(.data)
         *(.data.*)
         *(.gnu.linkonce.d*)
-    }
+    } > SDRAM
 
     /* No-BSS section */
     . = ALIGN(4);
     .nobss : 
     { 
         *(.nobss) 
-    }
+    } > SDRAM
 
     /* BSS section - runtime in SDRAM */
-    . = 0x30200000;
     . = ALIGN(4);
     __bss_start = .;
     .bss : 
