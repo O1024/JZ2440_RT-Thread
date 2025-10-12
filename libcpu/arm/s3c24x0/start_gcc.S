@@ -10,15 +10,18 @@
  * 2008-01-29     Yi.Qiu       for QEMU emulator
  */
 
+/* =============================================
+ * Configuration and Constants
+ * ============================================= */
 #define CONFIG_STACKSIZE    512
 #define S_FRAME_SIZE        72
 
+/* Stack frame offsets */
 #define S_OLD_R0            68
 #define S_PSR               64
 #define S_PC                60
 #define S_LR                56
 #define S_SP                52
-
 #define S_IP                48
 #define S_FP                44
 #define S_R10               40
@@ -33,6 +36,7 @@
 #define S_R1                4
 #define S_R0                0
 
+/* CPU mode definitions */
 .equ    USERMODE,           0x10
 .equ    FIQMODE,            0x11
 .equ    IRQMODE,            0x12
@@ -42,57 +46,62 @@
 .equ    MODEMASK,           0x1f
 .equ    NOINT,              0xc0
 
-.equ    RAM_BASE,           0x00000000  /*Start address of RAM      */
-.equ    ROM_BASE,           0x30000000  /*Start address of Flash    */
+/* Memory base addresses */
+.equ    RAM_BASE,           0x00000000  /* Start address of RAM */
+.equ    ROM_BASE,           0x30000000  /* Start address of Flash */
 
-.equ    MPLLCON,            0x4c000004  /*Mpll control register     */
+/* Clock control registers */
+.equ    MPLLCON,            0x4c000004  /* MPLL control register */
 .equ    M_MDIV,             0x20
 .equ    M_PDIV,             0x4
 .equ    M_SDIV,             0x2
+.equ    LOCKTIME,           0x4c000000
+.equ    CLKDIVN,            0x4c000014  /* Clock divider control */
 
+/* Interrupt control registers */
 .equ    INTMSK,             0x4a000008
 .equ    INTSUBMSK,          0x4a00001c
+
+/* Watchdog register */
 .equ    WTCON,              0x53000000
-.equ    LOCKTIME,           0x4c000000
-.equ    CLKDIVN,            0x4c000014  /*Clock divider control     */
-.equ    GPHCON,             0x56000070  /*Port H control            */
-.equ    GPHUP,              0x56000078  /*Pull-up control H         */
-.equ    BWSCON,             0x48000000  /*Bus width & wait status   */
-.equ    BANKCON0,           0x48000004  /*Boot ROM control          */
-.equ    BANKCON1,           0x48000008  /*BANK1 control             */
-.equ    BANKCON2,           0x4800000c  /*BANK2 cControl            */
-.equ    BANKCON3,           0x48000010  /*BANK3 control             */
-.equ    BANKCON4,           0x48000014  /*BANK4 control             */
-.equ    BANKCON5,           0x48000018  /*BANK5 control             */
-.equ    BANKCON6,           0x4800001c  /*BANK6 control             */
-.equ    BANKCON7,           0x48000020  /*BANK7 control             */
-.equ    REFRESH,            0x48000024  /*DRAM/SDRAM efresh         */
-.equ    BANKSIZE,           0x48000028  /*Flexible Bank Size        */
-.equ    MRSRB6,             0x4800002c  /*Mode egister set for SDRAM*/
-.equ    MRSRB7,             0x48000030  /*Mode egister set for SDRAM*/
 
-/*
- *************************************************************************
- *
- * Jump vector table
- *
- *************************************************************************
- */
+/* GPIO registers */
+.equ    GPHCON,             0x56000070  /* Port H control */
+.equ    GPHUP,              0x56000078  /* Pull-up control H */
 
+/* Memory controller registers */
+.equ    BWSCON,             0x48000000  /* Bus width & wait status */
+.equ    BANKCON0,           0x48000004  /* Boot ROM control */
+.equ    BANKCON1,           0x48000008  /* BANK1 control */
+.equ    BANKCON2,           0x4800000c  /* BANK2 control */
+.equ    BANKCON3,           0x48000010  /* BANK3 control */
+.equ    BANKCON4,           0x48000014  /* BANK4 control */
+.equ    BANKCON5,           0x48000018  /* BANK5 control */
+.equ    BANKCON6,           0x4800001c  /* BANK6 control */
+.equ    BANKCON7,           0x48000020  /* BANK7 control */
+.equ    REFRESH,            0x48000024  /* DRAM/SDRAM refresh */
+.equ    BANKSIZE,           0x48000028  /* Flexible Bank Size */
+.equ    MRSRB6,             0x4800002c  /* Mode register set for SDRAM */
+.equ    MRSRB7,             0x48000030  /* Mode register set for SDRAM */
+
+/* =============================================
+ * Exception Vector Table
+ * ============================================= */
 .section .init, "ax"
 .code 32
 
 .globl _start
 _start:
-    b       reset
-    ldr     pc, _vector_undef
-    ldr     pc, _vector_swi
-    ldr     pc, _vector_pabt
-    ldr     pc, _vector_dabt
-    ldr     pc, _vector_resv
-    ldr     pc, _vector_irq
-    ldr     pc, _vector_fiq
+    b       reset              /* Reset vector */
+    ldr     pc, _vector_undef  /* Undefined instruction */
+    ldr     pc, _vector_swi    /* Software interrupt */
+    ldr     pc, _vector_pabt   /* Prefetch abort */
+    ldr     pc, _vector_dabt   /* Data abort */
+    ldr     pc, _vector_resv   /* Reserved */
+    ldr     pc, _vector_irq    /* IRQ interrupt */
+    ldr     pc, _vector_fiq    /* FIQ interrupt */
 
+/* Exception vector addresses */
 _vector_undef:  .word vector_undef
 _vector_swi:    .word vector_swi
 _vector_pabt:   .word vector_pabt
@@ -161,86 +170,62 @@ ABORT_STACK_START:
 _STACK_START:
     .word _svc_stack_start + 4096
 
-/* ----------------------------------entry------------------------------*/
+.globl _STACK_START_EARLY
+_STACK_START_EARLY:
+    .word 4096
+
+/* =============================================
+ * Reset Vector and Startup Code
+ * ============================================= */
 reset:
+    /* Set CPU to SVC32 mode */
+    mrs     r0, cpsr
+    bic     r0, r0, #MODEMASK
+    orr     r0, r0, #SVCMODE
+    msr     cpsr, r0
 
-    ldr r0, =0x56000050
-    ldr r1, =0x00001500
-    str r1, [r0]
+    /* Disable watchdog */
+    ldr     r0, =WTCON
+    ldr     r1, =0x0
+    str     r1, [r0]
 
-control_loop:
-    @ 熄灭 GPF4-6
-    ldr r0, =0x56000054
-    ldr r1, =0xFF
-    str r1, [r0]
-    
-    @ 延时
-    bl delay
-    
-    @ 点亮 GPF4-6
-    ldr r0, =0x56000054
-    ldr r1, =0x0
-    str r1, [r0]
-    
-    @ 延时
-    bl delay
-
-    b control_loop           @ 循环执行
-
-@ =============================================
-@ 延时子程序
-@ =============================================
-delay:
-    ldr r2, =0x000FFFFF      @ 延时计数值
-delay_loop:
-    subs r2, r2, #1          @ 递减计数
-    bne delay_loop           @ 不为零则继续循环
-    mov pc, lr               @ 返回调用处
-
-    /* set the cpu to SVC32 mode    */
-    mrs     r0,cpsr
-    bic     r0,r0,#MODEMASK
-    orr     r0,r0,#SVCMODE
-    msr     cpsr,r0
-
-    /* watch dog disable            */
-    ldr     r0,=WTCON
-    ldr     r1,=0x0
-    str     r1,[r0]
-
-    /* mask all IRQs by clearing all bits in the INTMRs                 */
+    /* Mask all IRQs by clearing all bits in the INTMRs */
     ldr     r1, =INTMSK
     ldr     r0, =0xffffffff
     str     r0, [r1]
     ldr     r1, =INTSUBMSK
-    ldr     r0, =0x7fff             /*all sub interrupt disable         */
+    ldr     r0, =0x7fff             /* All sub interrupt disable */
     str     r0, [r1]
 
-    /* set interrupt vector         */
+#if 0
+    /* Set interrupt vector */
     ldr     r0, _load_address
-    mov     r1, #0x0                /* target address                   */
-    add     r2, r0, #0x20           /* size, 32bytes                    */
+    mov     r1, #0x0                /* Target address */
+    add     r2, r0, #0x20           /* Size, 32 bytes */
 
 copy_loop:
-    ldmia   r0!, {r3-r10}           /* copy from source address [r0]    */
-    stmia   r1!, {r3-r10}           /* copy to   target address [r1]    */
-    cmp     r0, r2          /* until source end address [r2]    */
+    ldmia   r0!, {r3-r10}           /* Copy from source address [r0] */
+    stmia   r1!, {r3-r10}           /* Copy to target address [r1] */
+    cmp     r0, r2                  /* Until source end address [r2] */
     ble     copy_loop
+#endif
 
-    /* setup stack */
-    bl      stack_setup
+    /* Setup stack early */
+    bl      stack_setup_early
 
-    /* clear .bss */
-    mov     r0,#0                   /* get a zero                       */
-    ldr     r1,=__bss_start         /* bss start                        */
-    ldr     r2,=__bss_end           /* bss end                          */
+    bl      led_main
+
+    /* Clear .bss section */
+    mov     r0, #0                  /* Get a zero */
+    ldr     r1, =__bss_start        /* BSS start */
+    ldr     r2, =__bss_end          /* BSS end */
 
 bss_loop:
-    cmp     r1,r2                   /* check if data to clear           */
-    strlo   r0,[r1],#4              /* clear 4 bytes                    */
-    blo     bss_loop                /* loop until done                  */
+    cmp     r1, r2                  /* Check if data to clear */
+    strlo   r0, [r1], #4            /* Clear 4 bytes */
+    blo     bss_loop                /* Loop until done */
 
-    /* call C++ constructors of global objects                          */
+    /* Call C++ constructors of global objects */
     ldr     r0, =__ctors_start__
     ldr     r1, =__ctors_end__
 
@@ -256,11 +241,12 @@ ctor_loop:
 
 ctor_end:
 
-    /* start RT-Thread Kernel       */
+    /* Start RT-Thread Kernel */
     ldr     pc, _rtthread_startup
 
 _rtthread_startup:
     .word rtthread_startup
+
 #if defined (__FLASH_BUILD__)
 _load_address:
     .word ROM_BASE + _TEXT_BASE
@@ -269,27 +255,22 @@ _load_address:
     .word RAM_BASE + _TEXT_BASE
 #endif
 
-/*
- *************************************************************************
- *
- * Interrupt handling
- *
- *************************************************************************
- */
+/* =============================================
+ * Interrupt Handling
+ * ============================================= */
 
-/* exception handlers               */
+/* Exception handlers */
     .align  5
 vector_undef:
     sub     sp, sp, #S_FRAME_SIZE
-    stmia   sp, {r0 - r12}          /* Calling r0-r12                   */
+    stmia   sp, {r0 - r12}          /* Calling r0-r12 */
     add     r8, sp, #S_PC
-    stmdb   r8, {sp, lr}^           /* Calling SP, LR                   */
-    str     lr, [r8, #0]            /* Save calling PC                  */
+    stmdb   r8, {sp, lr}^           /* Calling SP, LR */
+    str     lr, [r8, #0]            /* Save calling PC */
     mrs     r6, spsr
-    str     r6, [r8, #4]            /* Save CPSR                        */
-    str     r0, [r8, #8]            /* Save OLD_R0                      */
+    str     r6, [r8, #4]            /* Save CPSR */
+    str     r0, [r8, #8]            /* Save OLD_R0 */
     mov     r0, sp
-
     bl      rt_hw_trap_udef
 
     .align  5
@@ -303,15 +284,14 @@ vector_pabt:
     .align  5
 vector_dabt:
     sub     sp, sp, #S_FRAME_SIZE
-    stmia   sp, {r0 - r12}          /* Calling r0-r12                   */
+    stmia   sp, {r0 - r12}          /* Calling r0-r12 */
     add     r8, sp, #S_PC
-    stmdb   r8, {sp, lr}^           /* Calling SP, LR                   */
-    str     lr, [r8, #0]            /* Save calling PC                  */
+    stmdb   r8, {sp, lr}^           /* Calling SP, LR */
+    str     lr, [r8, #0]            /* Save calling PC */
     mrs     r6, spsr
-    str     r6, [r8, #4]            /* Save CPSR                        */
-    str     r0, [r8, #8]            /* Save OLD_R0                      */
+    str     r6, [r8, #4]            /* Save CPSR */
+    str     r0, [r8, #8]            /* Save OLD_R0 */
     mov     r0, sp
-
     bl      rt_hw_trap_dabt
 
     .align  5
@@ -387,33 +367,45 @@ _interrupt_thread_switch:
 
     ldmfd   sp!, {r0-r12,lr,pc}     /* pop new task's r0-r12,lr & pc    */
 
+/* =============================================
+ * Stack Setup Function
+ * ============================================= */
 stack_setup:
     mrs     r0, cpsr
     bic     r0, r0, #MODEMASK
     orr     r1, r0, #UNDEFMODE|NOINT
-    msr     cpsr_cxsf, r1           /* undef mode                       */
+    msr     cpsr_cxsf, r1           /* Undef mode */
     ldr     sp, UNDEFINED_STACK_START
 
-    orr     r1,r0,#ABORTMODE|NOINT
-    msr     cpsr_cxsf,r1            /* abort mode                       */
+    orr     r1, r0, #ABORTMODE|NOINT
+    msr     cpsr_cxsf, r1           /* Abort mode */
     ldr     sp, ABORT_STACK_START
 
-    orr     r1,r0,#IRQMODE|NOINT
-    msr     cpsr_cxsf,r1            /* IRQ mode                         */
+    orr     r1, r0, #IRQMODE|NOINT
+    msr     cpsr_cxsf, r1           /* IRQ mode */
     ldr     sp, IRQ_STACK_START
 
-    orr     r1,r0,#FIQMODE|NOINT
-    msr     cpsr_cxsf,r1            /* FIQ mode                         */
+    orr     r1, r0, #FIQMODE|NOINT
+    msr     cpsr_cxsf, r1           /* FIQ mode */
     ldr     sp, FIQ_STACK_START
 
-    bic     r0,r0,#MODEMASK
-    orr     r1,r0,#SVCMODE|NOINT
-    msr     cpsr_cxsf,r1            /* SVC mode                         */
+    bic     r0, r0, #MODEMASK
+    orr     r1, r0, #SVCMODE|NOINT
+    msr     cpsr_cxsf, r1           /* SVC mode */
 
     ldr     sp, _STACK_START
 
-    /* USER mode is not initialized. */
-    mov     pc,lr                   /* The LR register may be not valid for the mode changes.*/
+    /* USER mode is not initialized */
+    mov     pc, lr                  /* The LR register may be not valid for the mode changes */
 
-/*/*}*/
+stack_setup_early:
+    mrs     r0, cpsr
+    bic     r0, r0, #MODEMASK
+    orr     r1, r0, #SVCMODE|NOINT
+    msr     cpsr_cxsf, r1           /* SVC mode */
+
+    ldr     sp, _STACK_START_EARLY
+
+    /* USER mode is not initialized */
+    mov     pc, lr                  /* The LR register may be not valid for the mode changes */
 
