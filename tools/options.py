@@ -148,3 +148,9 @@ def AddOptions():
                 'e.g. scons --attach=? View all attachconfig for the current bsp.'+\
                 ' or scons --attach=component.cherryusb_cdc Set option component.cherryusb_cdc inside attachconfig to.config.'+\
                 ' or scons --attach=default Restore.config and rtconfig to before attch was set.')
+				
+    AddOption('--run_openocd',
+                dest = 'run_openocd',
+                action = 'store_true',
+                default = False,
+                help = 'run openocd for mini2440')

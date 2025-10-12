@@ -174,6 +174,12 @@ def PrepareBuilding(env, root_directory, has_libcpu=False, remove_components = [
                 'codelite' : ('gcc', 'gcc'),
                 'esp-idf': ('gcc', 'gcc'),
                 'zig':('gcc', 'gcc')}
+
+    if GetOption('run_openocd'):
+        from misc import run_openocd
+        run_openocd()
+        exit(0)
+
     tgt_name = GetOption('target')
 
     if tgt_name:
