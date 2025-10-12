@@ -18,8 +18,11 @@ env = Environment(tools = ['mingw'],
     CC = rtconfig.CC, CFLAGS = rtconfig.CFLAGS,
     CXX = rtconfig.CXX,
     AR = rtconfig.AR, ARFLAGS = '-rc',
-    LINK = rtconfig.LINK, LINKFLAGS = rtconfig.LFLAGS)
+    LINK = rtconfig.LINK, LINKFLAGS = rtconfig.LFLAGS,
+    COMPILATIONDB_USE_ABSPATH = True)
 env.PrependENVPath('PATH', rtconfig.EXEC_PATH)
+env.Tool('compilation_db')
+env.CompilationDatabase()
 
 Export('RTT_ROOT')
 Export('rtconfig')
