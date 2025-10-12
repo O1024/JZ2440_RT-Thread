@@ -164,6 +164,39 @@ _STACK_START:
 /* ----------------------------------entry------------------------------*/
 reset:
 
+    ldr r0, =0x56000050
+    ldr r1, =0x00001500
+    str r1, [r0]
+
+control_loop:
+    @ 熄灭 GPF4-6
+    ldr r0, =0x56000054
+    ldr r1, =0xFF
+    str r1, [r0]
+    
+    @ 延时
+    bl delay
+    
+    @ 点亮 GPF4-6
+    ldr r0, =0x56000054
+    ldr r1, =0x0
+    str r1, [r0]
+    
+    @ 延时
+    bl delay
+
+    b control_loop           @ 循环执行
+
+@ =============================================
+@ 延时子程序
+@ =============================================
+delay:
+    ldr r2, =0x000FFFFF      @ 延时计数值
+delay_loop:
+    subs r2, r2, #1          @ 递减计数
+    bne delay_loop           @ 不为零则继续循环
+    mov pc, lr               @ 返回调用处
+
     /* set the cpu to SVC32 mode    */
     mrs     r0,cpsr
     bic     r0,r0,#MODEMASK
