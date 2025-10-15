@@ -126,15 +126,23 @@ extern "C" {
 
 
 // NAND flash
-#define NFCONF     (*(volatile unsigned *)0x4e000000)      //NAND Flash configuration
-#define NFCMD      (*(volatile unsigned *)0x4e000004)            //NADD Flash command
-#define NFADDR     (*(volatile unsigned *)0x4e000008)            //NAND Flash address
-#define NFDATA     (*(volatile unsigned *)0x4e00000c)            //NAND Flash data
-#define NFSTAT     (*(volatile unsigned *)0x4e000010)      //NAND Flash operation status
-#define NFECC      (*(volatile unsigned *)0x4e000014)      //NAND Flash ECC
-#define NFECC0     (*(volatile unsigned *)0x4e000014)
-#define NFECC1     (*(volatile unsigned *)0x4e000015)
-#define NFECC2     (*(volatile unsigned *)0x4e000016)
+#define NFCONF      (*(volatile unsigned int*)0x4e000000)
+#define NFCONT      (*(volatile unsigned int*)0x4e000004)
+#define NFCMD     (*(volatile unsigned char*)0x4e000008)           //NAND Flash command
+#define NFADDR     (*(volatile unsigned char*)0x4e00000c)            //NAND Flash address
+#define NFDATA     (*(volatile unsigned char*)0x4e000010)            //NAND Flash data 一定要这样写，不能用 unsigned int，否则会导致读取数据乱序
+#define NFMECCD0   (*(volatile unsigned int*)0x4e000014)            //NAND Flash ECC
+#define NFMECCD1   (*(volatile unsigned int*)0x4e000018)            //NAND Flash ECC
+#define NFSECCD   (*(volatile unsigned int*)0x4e00001c)            //NAND Flash ECC
+#define NFSTAT   (*(volatile unsigned char*)0x4e000020)            //NAND Flash ECC
+#define NFESTAT0   (*(volatile unsigned int*)0x4e000024)            //NAND Flash ECC
+#define NFESTAT1   (*(volatile unsigned int*)0x4e000028)            //NAND Flash ECC
+#define NFMECC0   (*(volatile unsigned int*)0x4e00002c)            //NAND Flash ECC
+#define NFMECC1   (*(volatile unsigned int*)0x4e000030)            //NAND Flash ECC
+#define NFSECC   (*(volatile unsigned int*)0x4e000034)            //NAND Flash ECC
+#define NFSBLK   (*(volatile unsigned int*)0x4e000038)            //NAND Flash ECC
+#define NFEBLK   (*(volatile unsigned int*)0x4e00003c)            //NAND Flash ECC
+
 
 // UART
 #define U0BASE     (*(volatile unsigned *)0x50000000) //UART 0 Line control

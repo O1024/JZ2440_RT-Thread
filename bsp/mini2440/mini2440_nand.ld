@@ -18,7 +18,6 @@ SECTIONS
         *(.init)           /* Exception vectors and reset code */
         *(.boot_early)
 
-
         *(.boot_date)
         . = ALIGN(4);
     } > SRAM AT > SDRAM

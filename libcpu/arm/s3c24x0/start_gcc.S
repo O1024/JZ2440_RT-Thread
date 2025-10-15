@@ -174,6 +174,10 @@ _STACK_START:
 _STACK_START_EARLY:
     .word 4096
 
+.globl _STACK_START1
+_STACK_START1:
+    .word 0x34000000
+
 /* =============================================
  * Reset Vector and Startup Code
  * ============================================= */
@@ -216,7 +220,13 @@ copy_loop:
     /* Setup memory controller */
     bl      mem_setup
 
-    bl      led_main
+    bl      nand_init
+    bl      nand_read
+
+    @bl      led_main
+
+    bl      stack_setup1
+    ldr     pc, =led_main
 
     /* Clear .bss section */
     mov     r0, #0                  /* Get a zero */
@@ -408,6 +418,17 @@ stack_setup_early:
     msr     cpsr_cxsf, r1           /* SVC mode */
 
     ldr     sp, _STACK_START_EARLY
+
+    /* USER mode is not initialized */
+    mov     pc, lr                  /* The LR register may be not valid for the mode changes */
+
+stack_setup1:
+    mrs     r0, cpsr
+    bic     r0, r0, #MODEMASK
+    orr     r1, r0, #SVCMODE|NOINT
+    msr     cpsr_cxsf, r1           /* SVC mode */
+
+    ldr     sp, =0x34000000
 
     /* USER mode is not initialized */
     mov     pc, lr                  /* The LR register may be not valid for the mode changes */
